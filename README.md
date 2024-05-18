@@ -34,6 +34,8 @@
 >> git push  # will add the local commits to the remote repository
 >> git push --set-upstream origin main # will set up tracking and push local commits to the remote repository branch named "main"
 >> git pull # will pull the commits from the remote repository which are not present locally
+>> git clone <url> <project_name> # will clone the project from the remote repository to the local machine
+>> git remote get-url origin # command will output the URL associated with the specified remote repository
 ```
 
 ## 🤔💬 Q & A's
@@ -134,4 +136,308 @@ The command `git push --set-upstream origin main` is used to set up a tracking r
 
 In summary, `git push --set-upstream origin main` is used to establish a tracking relationship between a local branch and a branch on a remote repository, simplifying future push and pull operations.
 
+</details>
+
+# II. 🏗️ GitHub Actions - Basic Building Blocks
+
+### Workflows, Jobs and Steps
+
+- **Workflows** : They are attached to the GitHub repository. They contain one or more jobs. There are **events** which trigger the workflow
+- **Jobs** : They define a **Runner** (an execution environment). They can be pre-defined or custom. There are steps which are executed in the runner environment. The jobs can run sequentially/parallely. They can also be driven by some condition.
+- **Steps**: They execute a shell script or an action. They can be custom or third
+
+The GitHub workflows are defined as files within the repository and will be part of the repo itself and commits within it.
+
+### Events (Workflow Triggers)
+
+There are tons of repository-related events, some include: `push`, `pull_request`, `create`, `fork`, `issues`, `issue_comment`, etc.
+Also, we can control what kind of push should trigger the event. So, for example we can trigger the event when we perform a `push` to a particular branch.
+
+### Actions
+
+An Action is a separate feature from a workflow in the context of GitHub action. It is a (custom) application that performs a (typically complex) frequently repeated task. An alternative but a simple step is the `run` command in GitHub ction which could be a simple shell command that is defined by us. We can use our own custom action or community driven action.
+
+The keyword that we use for running an **action** in the job of a workflow is that we use the `uses` keyword.
+
+Also note when configuring the runner in a GitHub workflow, the application logic is run on the runner. The runner sets up the environment according to the job's requirement (specified in the `runs-on` field). The runner checks out the code (using actions like `actions/checkout`), sets up any related environment variables, and install necessary dependencies. The runner then executes each step defined in the job. Steps can run shell commands directly or use pre-built actions from the GitHub marketplace.
+
+### Jobs
+
+A job is a set of steps that execute on the same runner. Jobs allow you to define stages of your workflow, such as build, test, deploy. Every job has its own runner - its own VM that is totally isolated from other machines and jobs. Jobs within the same workflow can run independently and concurrently unless you specify dependencies between them.
+
+The unique identifiers for the job in GitHub Actions workflow are not built-in keywords; they are arbitrary names that you define to reference each job within the workflow. You choose the identifiers for the jobs. They should be unique within the workflow file. There are no predefined job identifiers like `build`, `test` and `deploy` in GitHub Actions.
+
+### Naming jobs (best practice)
+- **Descriptive names:** Use descriptive names for job identifiers to make your workflow easier to understand. E.g. `build_stage` instead of `build`
+- **Consistency:** Maintain consistent naming conventions throughout your workflows to improve readability and maintainability.
+- **Avoid Special characters:** Stick to alphanumeric characters and underscores (_) for job identifiers to avoid potential issues.
+
+### Expressions
+
+They are used to compute values dynamically within the workflow YAML. They can be used in `if` conditionals, environment variables, and other fields that support dynamic values.
+
+#### Basic Syntax
+
+Expressions are enclosed within `${{  }}`. For example:
+
+```yml
+name: CI
+
+on: [push]
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print message
+        run: echo "Hello, ${{ github.actor }}"
+
+```
+
+In this example, we have `%{{ github.actor }}` which evaluates to the username of the person who triggered the workflow.
+
+**Common operators:**
+
+- Logical Operators: &&, ||, !
+- Comparison Operators: ==, !=, <, <=, >, >=
+- Arithmetic Operators: +, -, *, /, %
+- String Operators: startsWith, endsWith, contains
+
+##### Example with `if` conditional
+
+```yml
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run tests
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: npm test
+```
+
+This exaample runs the tests only if the workflow is triggered by a push event to the main branch.
+
+### Contexts
+
+Context provide access to the information about workflow runs, runner environment, jobs and steps. They are available in expressions and can be used to make decisions or pass data between jobs.
+
+**Common Contexts**
+
+1. `github` Context: Contains information aobut the workflow run & the event that triggered it. e.g. `github.actor`
+2. `env` Context: Contains the env variable that have been set in the workflow. e.g. `env.<VARIABLE_NAME>`
+3. `job` Context: Contains the info about the currently running job. e.g. `job.status`
+4. `steps` Context: Contains the result of the previous steps in the current job. e.g. `steps.<step_id>.outputs`
+5. `runner` Context: Contains the info about the runner executing the job. e.g. `runner.os`, `runner.arch`
+
+##### Example with Contexts
+
+```yml
+name: CI
+
+on: [push]
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Check out the code
+        uses: actions/checkout@v2
+
+      - name: Run tests
+        run: npm test
+
+      - name: Print GitHub Context
+        run: echo "This workflow was triggered by ${{ github.actor }} on branch ${{ github.ref }} using commit ${{ github.sha }}"
+
+      - name: Conditional Step
+        if: ${{ runner.os == 'Linux' }}
+        run: echo "This step runs only on Linux runners"
+```
+
+##### Combining Expressions and Contexts
+
+```yml
+name: CI
+
+on: [push]
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v2
+
+      - name: Set environment variable
+        run: echo "COMMIT_SHA=${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: Use environment variable
+        run: echo "The commit SHA is ${{ env.COMMIT_SHA }}"
+```
+
+In this example, the `COMMIT_SHA` environment variable is set dynamically using the `github.sha` context and then used in a subsequent step.
+
+##### Summary of Expressions & Contexts
+
+- **Expressions**: Used to compute values dynamically within the workflow. Enclosed within `${{ }}` and support various operators.
+- **Contexts**: Provide access to detailed information about the workflow, runner, jobs, and steps. Used within expressions to make workflows dynamic and responsive to runtime data.
+
+## 🤔💬 Q & A's
+
+<details>
+<summary><h3>How can we set the jobs in a workflow to run in sequence / parallel?</h3></summary>
+
+  In GitHub Actions, jobs run in parallel by default. However, you can control the execution order of jobs and run them sequentially by specifying job dependencies using the `needs` keyword. By setting up the dependencies, you ensure that a job will only run after the job it depends on is completed successfully.
+
+### Example Workflow with Sequential Jobs
+
+Here’s an example of how to set up a workflow with three jobs (`build`, `test`, and `deploy`) that run sequentially:
+
+```yaml
+name: CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build project
+      run: npm run build
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run tests
+      run: npm test
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Deploy to server
+      run: ./deploy.sh
+```
+
+### Explanation:
+1. **Job Definitions:**
+   - **`build` job:** This job checks out the code, sets up Node.js, installs dependencies, and builds the project.
+   - **`test` job:** This job checks out the code, sets up Node.js, installs dependencies, and runs tests. It will only run after the `build` job completes successfully.
+   - **`deploy` job:** This job checks out the code and deploys the project. It will only run after the `test` job completes successfully.
+
+2. **Dependencies:**
+   - The `needs: build` keyword in the `test` job specifies that the `test` job should run after the `build` job.
+   - The `needs: test` keyword in the `deploy` job specifies that the `deploy` job should run after the `test` job.
+
+### Using `needs` for Sequential Execution:
+- **Defining Dependencies:** Use the `needs` keyword to define which job(s) a job depends on. This ensures that jobs run in the specified order.
+- **Sequential Execution:** By chaining dependencies, you can create a sequence of jobs that run one after another.
+
+### Example with More Complex Dependencies
+
+If you have a more complex workflow where multiple jobs need to run sequentially but some jobs can run in parallel within a sequence, you can set up a more complex dependency structure.
+
+```yaml
+name: Complex CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up environment
+      run: ./setup-env.sh
+
+  build:
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+    - name: Build project
+      run: ./build.sh
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+    - name: Run linter
+      run: npm run lint
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [build, lint]
+
+    steps:
+    - name: Run tests
+      run: npm test
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Deploy
+      run: ./deploy.sh
+```
+
+### Explanation of Complex Example:
+1. **`setup` job:** This job prepares the environment.
+2. **`build` and `lint` jobs:** These jobs both depend on the `setup` job and will run in parallel after `setup` completes.
+3. **`test` job:** This job depends on both `build` and `lint` jobs, ensuring that tests are run only after both build and linting are done. Hence, multiple jobs can be placed in a list for the `needs` element.
+4. **`deploy` job:** This job depends on the `test` job, ensuring that deployment happens only after tests pass.
+
+### Summary:
+- **Parallel by Default:** Jobs run in parallel unless dependencies are specified.
+- **Sequential Execution:** Use the `needs` keyword to specify dependencies and control the execution order.
+- **Complex Workflows:** Combine multiple dependencies to create complex workflows with parallel and sequential job execution.
+
+By defining dependencies using the `needs` keyword, you can control the order in which jobs run in your GitHub Actions workflow, ensuring they execute sequentially as required.
+  
 </details>
