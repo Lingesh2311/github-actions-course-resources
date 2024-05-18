@@ -23,6 +23,7 @@
 >> git checkout <branch_name> # will switch to an existing branch specified. If there are uncommitted changes in the current change, Git will allow to switch only if uncommitted changes do not conflict with the branch you are switching to
 >> git merge  <branch_name> # merges the changes from the branch back to main branch
 >> git branch # lists the branches and the *<green_branch_name> will indicate the current branch you are working on
+>> git branch -D <branch_name> # will delete the branch and the commits that are part of it
 ```
 
 ### Working with GitHub 🔧
