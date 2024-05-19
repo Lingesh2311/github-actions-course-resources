@@ -6,7 +6,6 @@ on: # Define the event that triggers the workflow
       - 'Code/04 Artifacts & Outputs/01 Starting Project/**' # Path to monitor for changes
     branches: # Only trigger on specific branches
       - main # Branch to monitor for changes
-  workflow_dispatch:
 
 jobs: # Define jobs to run in the workflow
 
@@ -16,33 +15,26 @@ jobs: # Define jobs to run in the workflow
       - name: Get Code # Step to check out the code
         uses: actions/checkout@v4.1.5
 
-      - name: Change to specific directory # Step to change directory
-        run: cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
-
       - name: Set up Node.js # Step to set up Node.js environment
         uses: actions/setup-node@v4
         with:
           node-version: 18 # Specify Node.js version
 
       - name: Install Dependencies # Step to install dependencies
-        run: |
-          cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
-          npm ci # npm ci is a safer alternative to npm install
+        run: npm ci
+        working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/' # Change to the specific directory
 
       - name: Run tests # Step to run tests
-        run: |
-          cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
-          npm run test
+        run: npm run test
+        working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/' # Change to the specific directory
 
   build_stage: # Second job: build stage
     runs-on: ubuntu-latest # Use the latest Ubuntu runner
     needs: test_stage # This job depends on the successful completion of the test_stage
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' # Only run this job on push to main branch
     steps: # Steps to execute in this job
       - name: Get code # Step to check out the code
         uses: actions/checkout@v4.1.5
-
-      - name: Change to specific directory # Step to change directory
-        run: cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
 
       - name: Set up Node.js # Step to set up Node.js environment
         uses: actions/setup-node@v4
@@ -50,22 +42,20 @@ jobs: # Define jobs to run in the workflow
           node-version: 18 # Specify Node.js version
 
       - name: Install Dependencies # Step to install dependencies
-        run: |
-          cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
-          npm ci # npm ci is a safer alternative to npm install
+        run: npm ci
+        working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/' # Change to the specific directory
 
       - name: Build project # Step to build the project
-        run: |
-          cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
-          npm run build
-      
+        run: npm run build
+        working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/' # Change to the specific directory
+
       - name: Upload artifacts # Step to upload build artifacts
         uses: actions/upload-artifact@v4.3.3
         with:
           name: dist-files # Name of the artifact
           path: |
-            dist # Path to the dist directory
-            package.json # Path to package.json
+            Code/04 Artifacts & Outputs/01 Starting Project/dist/ # Path to the dist directory
+            Code/04 Artifacts & Outputs/01 Starting Project/package.json # Path to package.json
 
   deploy_stage: # Third job: deploy stage
     runs-on: ubuntu-latest # Use the latest Ubuntu runner
