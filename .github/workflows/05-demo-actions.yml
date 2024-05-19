@@ -6,6 +6,7 @@ on: # Define the event that triggers the workflow
       - 'Code/04 Artifacts & Outputs/01 Starting Project/**' # Path to monitor for changes
     branches: # Only trigger on specific branches
       - main # Branch to monitor for changes
+  workflow_dispatch:
 
 jobs: # Define jobs to run in the workflow
 
