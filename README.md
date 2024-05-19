@@ -491,6 +491,45 @@ Here we have the `push` & `workflow_dispatch` event triggers activated on the cu
 
 A workflow event in GitHub Actions can have multiple activity types associated with it. For example, the `pull_request` event can include activities such as `opened`, `assigned`, `closed`, `reopened`, etc. You can configure the workflow to be triggered or run only when a specific activity type occurs within the event, allowing you to precisely control when your workflow should execute based on the specific action that occurred.
 
+### Skipping Workflow Runs
+
+We can skip the workflow runs triggered by the `push` and `pull_request` events by including a command in the commit message.
+
+Workflows that would otherwise be triggered using `on: push` or `on: pull_request` won't be triggered if you add any of the following strings to the commit message in a push, or the HEAD commit of a pull request:
+
+- `[skip ci]`
+- `[ci skip]`
+- `[no ci]`
+- `[skip actions]`
+- `[actions skip]`
+
+To leave the commit message exactly as you entered it, use the `--clean=verbatim` option on your commit.
+
+The skip-checks trailer in a commit message is a convention used to instruct continuous integration (CI) systems, like GitHub Actions, to skip certain checks or workflows for that particular commit. This can be useful in situations where you want to bypass CI checks for a commit that doesn't need them, such as a minor documentation change or a temporary experiment.
+
+#### Example 1 : Simple Commit message with `skip-checks: true` 
+
+```txt
+Fix typo in README
+
+This commit corrects a small typo in the documentation.
+
+skip-checks: true
+```
+
+#### Example 2 : Commit message with multiple trailers
+
+```txt
+Update dependencies and fix security vulnerabilities
+
+This commit updates several dependencies to their latest versions
+and addresses security vulnerabilities reported by Dependabot.
+
+Signed-off-by: John Doe <john.doe@example.com>
+
+skip-checks: true
+```
+
 ## 🤔💬 Q & A's
 
 <details><summary><h3>What are activity types and event filters in a GitHub Workflow?</h3></summary>
@@ -547,5 +586,53 @@ In this workflow,
 
 - The workflow will run on push events only when changes are pushed to the `main` branch & `dev-*` like branches and affect files in the `src` directory.
 - The workflow will also run on `pull_request` events when pull requests are opened or synchronized.
+
+</details>
+
+<details>
+<summary><h3>What is the default behaviour for an action that might be validily triggered by a forked repository?</h3></summary>
+
+By default, Pull requests based on forks **DO NOT** trigger a workflow.
+
+We can have our workflow configured such that it takes into account the restrictoins when dealing with forked repositories:
+
+```yaml
+name: Example Workflow
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read  # Restrict permissions to read-only
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Ensure full history is fetched for accurate diffs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Conditional Deployment
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: echo "Deploying..."
+        # Add your deployment script here, but it will only run for pull requests from the same repository
+```
+
+- **Conditional Steps** - The `Conditional Deployment` step includes a conditional check to ensure that the deployments only occur for pull requests originating from the same repository (`github.event.pull_request.head.repo.full_name == github.repository`). This prevents the deployment job to be triggered from the forked repos.
+- **Fetching full history** - The `fetch-depth : 0` option in the `actions/checkout` step ensures that the full history is fetched, which is useful for calculating the accurate diffs and understanding the full context of changes.
+- **Read-only permissions** - The `permissions` key is set to read-only for contents to limit the scope of what the `GITHUB_TOKEN` can do, providing an additional layer of security.
 
 </details>
