@@ -37,7 +37,6 @@ jobs: # Define jobs to run in the workflow
   build_stage: # Second job: build stage
     runs-on: ubuntu-latest # Use the latest Ubuntu runner
     needs: test_stage # This job depends on the successful completion of the test_stage
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' # Only run this job on push to main branch
     steps: # Steps to execute in this job
       - name: Get code # Step to check out the code
         uses: actions/checkout@v4.1.5
