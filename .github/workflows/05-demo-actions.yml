@@ -1,65 +1,76 @@
-name: Demo Project for Job Artifacts & Outputs
-on:
-  push:
-    paths:
-      - 'Code/04 Artifacts & Outputs/01 Starting Project/**'
-    branches:
-      - main
-jobs:
-  test_stage:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get Code
+name: Demo Project for Job Artifacts & Outputs # Name of the workflow
+
+on: # Define the event that triggers the workflow
+  push: # Trigger the workflow on push events
+    paths: # Only trigger if changes are made to specific paths
+      - 'Code/04 Artifacts & Outputs/01 Starting Project/**' # Path to monitor for changes
+    branches: # Only trigger on specific branches
+      - main # Branch to monitor for changes
+  workflow_dispatch:
+
+jobs: # Define jobs to run in the workflow
+
+  test_stage: # First job: test stage
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+    steps: # Steps to execute in this job
+      - name: Get Code # Step to check out the code
         uses: actions/checkout@v4.1.5
 
-      - name: Change to specific directory
+      - name: Change to specific directory # Step to change directory
         run: cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
 
-      - name: Set up Node.js
+      - name: Set up Node.js # Step to set up Node.js environment
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 18 # Specify Node.js version
 
-      - name: Install Dependencies
+      - name: Install Dependencies # Step to install dependencies
         run: |
           cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
-          npm ci # bit safer than npm install
+          npm ci # npm ci is a safer alternative to npm install
 
-      - name: Run tests
+      - name: Run tests # Step to run tests
         run: |
           cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
           npm run test
 
-  build_stage:
-    runs-on: ubuntu-latest
-    needs: test_stage
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - name: Get code
+  build_stage: # Second job: build stage
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+    needs: test_stage # This job depends on the successful completion of the test_stage
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' # Only run this job on push to main branch
+    steps: # Steps to execute in this job
+      - name: Get code # Step to check out the code
         uses: actions/checkout@v4.1.5
 
-      - name: Change to specific directory
+      - name: Change to specific directory # Step to change directory
         run: cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
 
-      - name: Set up Node.js
+      - name: Set up Node.js # Step to set up Node.js environment
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 18 # Specify Node.js version
 
-      - name: Install Dependencies
+      - name: Install Dependencies # Step to install dependencies
         run: |
           cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
-          npm ci # bit safer than npm install
+          npm ci # npm ci is a safer alternative to npm install
 
-      - name: Build project
+      - name: Build project # Step to build the project
         run: |
           cd 'Code/04 Artifacts & Outputs/01 Starting Project/'
           npm run build
+      
+      - name: Upload artifacts # Step to upload build artifacts
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: dist-files # Name of the artifact
+          path: |
+            Code/04 Artifacts & Outputs/01 Starting Project/dist/ # Path to the dist directory
+            Code/04 Artifacts & Outputs/01 Starting Project/package.json # Path to package.json
 
-  deploy_stage:
-    runs-on: ubuntu-latest
-    needs: build_stage
-    steps:
-      - name: Deploy
-        run: echo "Deploying..."
-        
+  deploy_stage: # Third job: deploy stage
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+    needs: build_stage # This job depends on the successful completion of the build_stage
+    steps: # Steps to execute in this job
+      - name: Deploy # Step to deploy the project
+        run: echo "Deploying..." # Placeholder for actual deployment command
