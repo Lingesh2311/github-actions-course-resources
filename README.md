@@ -41,15 +41,12 @@
 ## 🤔💬 Q & A's
 
 <details>
-  
 <summary><h3> What is the meaning of <code>HEAD->main</code> ? </h3></summary>
 
 The `HEAD` is the reference to the currently checked-out branch or commit. `main` refers to the name of the branch. When you see `HEAD-main` it means that the `HEAD` pointer is currently pointing to the `main` branch. This typically occurs when you are on the `main` branch and have made changes or are viewing the history of commits on that branch. It is a way that Git indicates which branch you are currently working with or viewing. In Git, `main` is the default branch (instead of the `master`, which was more commonly used in the past).
-
 </details>
 
 <details>
-
 <summary><h3> What is the difference between <code>rebase</code> and <code>merge</code> ? </h3></summary>
 
 #### Merge
@@ -112,7 +109,6 @@ In the merge scenario, there's a merge commit (`M`) that integrates changes from
 </details>
 
 <details>
-
 <summary><h3>What is the use of <code>git push --set-upstream origin main</code>?</h3></summary>
 
 The command `git push --set-upstream origin main` is used to set up a tracking relationship between the local branch and the remote repository branch. Here's what it does:
@@ -138,7 +134,6 @@ The command `git push --set-upstream origin main` is used to set up a tracking r
 - After this setup, future `git push` commands on this branch will automatically push changes to the `main` branch on the `origin` repository without needing to specify the remote and branch every time.
 
 In summary, `git push --set-upstream origin main` is used to establish a tracking relationship between a local branch and a branch on a remote repository, simplifying future push and pull operations.
-
 </details>
 
 # II. 🏗️ GitHub Actions - Basic Building Blocks
