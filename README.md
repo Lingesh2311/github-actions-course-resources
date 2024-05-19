@@ -585,8 +585,7 @@ In this workflow,
 
 </details>
 
-<details>
-<summary><h3>What is the default behaviour for an action that might be validily triggered by a forked repository?</h3></summary>
+<details><summary><h3>What is the default behaviour for an action that might be validily triggered by a forked repository?</h3></summary>
 
 By default, Pull requests based on forks **DO NOT** trigger a workflow.
 
