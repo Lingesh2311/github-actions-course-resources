@@ -1,0 +1,28 @@
+name: Events Demo 1  # Name of the workflow
+
+on:  # Define triggers for the workflow
+  push:  # Triggered on push events
+    paths:  # Filter by file paths
+      - 'Code/03 Events/01 Starting Project/**'  # Only trigger if changes occur in this path
+  workflow_dispatch:  # Allow manual triggering of the workflow
+  pull_request:  # Triggered on pull request events
+    types:  # Filter by pull request actions
+      - opened  # Only trigger on pull request open action
+
+jobs:
+  deploy:  # Define a job named "deploy"
+    runs-on: ubuntu-latest  # Run the job on an Ubuntu runner
+    steps:
+      - name: Output event data  # Display event data
+        run: echo "${{ toJSON(github.event) }}"
+      - name: Get code  # Checkout the repository code
+        uses: actions/checkout@v3
+      - name: Install dependencies  # Install project dependencies
+        run: npm ci
+      - name: Test code  # Run tests
+        run: npm run test
+      - name: Build code  # Build the project
+        run: npm run build
+      - name: Deploy project  # Deploy the project
+        if: ${{ github.ref == 'refs/heads/main' || github.event_name == 'pull_request' }}  # Deploy on push to main or pull request
+        run: echo "Deploying..."
