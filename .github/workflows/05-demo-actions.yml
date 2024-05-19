@@ -54,8 +54,8 @@ jobs: # Define jobs to run in the workflow
         with:
           name: dist-files # Name of the artifact
           path: |
-            Code/04 Artifacts & Outputs/01 Starting Project/dist/ # Path to the dist directory
-            Code/04 Artifacts & Outputs/01 Starting Project/package.json # Path to package.json
+            Code/04 Artifacts & Outputs/01 Starting Project/dist
+            Code/04 Artifacts & Outputs/01 Starting Project/package.json
 
   deploy_stage: # Third job: deploy stage
     runs-on: ubuntu-latest # Use the latest Ubuntu runner
