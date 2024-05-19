@@ -17,7 +17,7 @@
 
 ### Branching 🌿
 
-```shell 
+```shell
 >> git branch <branch_name> # creates a new branch
 >> git checkout -b <branch_name> # will create a new branch and checkout the same
 >> git checkout <branch_name> # will switch to an existing branch specified. If there are uncommitted changes in the current change, Git will allow to switch only if uncommitted changes do not conflict with the branch you are switching to
@@ -52,7 +52,8 @@ The `HEAD` is the reference to the currently checked-out branch or commit. `main
 
 <summary><h3> What is the difference between <code>rebase</code> and <code>merge</code> ? </h3></summary>
 
-#### Merge:
+#### Merge
+
 1. **Merge `feature` into `main`:**
    - With merge, you bring the changes from `feature` branch into `main` branch.
    - When you merge `feature` into `main`, Git creates a new commit on `main` that combines the changes from both branches.
@@ -64,7 +65,8 @@ git checkout main
 git merge feature
 ```
 
-#### Rebase:
+#### Rebase
+
 1. **Rebase `feature` onto `main`:**
    - With rebase, you move the entire `feature` branch to begin from the tip of `main` branch.
    - Git rewinds the changes made in `feature`, switches to `main`, applies the changes from `main`, and then applies the changes from `feature` on top of it.
@@ -76,11 +78,11 @@ git checkout feature
 git rebase main
 ```
 
-#### Example:
+#### Example
 
 Let's say `main` has commits A, B, and C, and `feature` has commits X, Y, and Z. After merging and rebasing, the commit history might look like this:
 
-##### Merge:
+##### Merge
 
 ```
               ┌─── Merge Commit (M) ─┐
@@ -90,7 +92,7 @@ main:  A ── B ── C ── M ──────────────�
 feature:               X ── Y ── Z
 ```
 
-##### Rebase:
+##### Rebase
 
 ```
 main:  A ── B ── C ─────────────────────────
@@ -100,7 +102,7 @@ feature:                         X' ── Y' ── Z'
 
 In the merge scenario, there's a merge commit (`M`) that integrates changes from both branches. In the rebase scenario, the commits from `feature` are applied directly on top of `main` without any additional merge commits.
 
-#### Summary:
+#### Summary
 
 - **Merge:** Integrates changes from one branch into another, creating a merge commit.
 - **Rebase:** Moves the entire branch to begin from the tip of another branch, creating a linear commit history.
@@ -128,7 +130,8 @@ The command `git push --set-upstream origin main` is used to set up a tracking r
 4. **Specify Branch Name (`main`):**
    - `main` is the name of the branch on the remote repository where the changes will be pushed.
 
-#### Use Case:
+#### Use Case
+
 - Suppose you've created a new branch locally and made some commits on it.
 - When you try to push these changes using `git push`, Git will prompt you to specify the remote repository and branch to push to because it doesn't know where to push the changes.
 - By using `git push --set-upstream origin main`, you're specifying that the local branch should track the `main` branch on the `origin` remote repository.
@@ -168,6 +171,7 @@ A job is a set of steps that execute on the same runner. Jobs allow you to defin
 The unique identifiers for the job in GitHub Actions workflow are not built-in keywords; they are arbitrary names that you define to reference each job within the workflow. You choose the identifiers for the jobs. They should be unique within the workflow file. There are no predefined job identifiers like `build`, `test` and `deploy` in GitHub Actions.
 
 ### Naming jobs (best practice)
+
 - **Descriptive names:** Use descriptive names for job identifiers to make your workflow easier to understand. E.g. `build_stage` instead of `build`
 - **Consistency:** Maintain consistent naming conventions throughout your workflows to improve readability and maintainability.
 - **Avoid Special characters:** Stick to alphanumeric characters and underscores (_) for job identifiers to avoid potential issues.
@@ -296,8 +300,7 @@ In this example, the `COMMIT_SHA` environment variable is set dynamically using 
 
 ## 🤔💬 Q & A's
 
-<details>
-<summary><h3>How can we set the jobs in a workflow to run in sequence / parallel?</h3></summary>
+<details><summary><h3>How can we set the jobs in a workflow to run in sequence / parallel?</h3></summary>
 
   In GitHub Actions, jobs run in parallel by default. However, you can control the execution order of jobs and run them sequentially by specifying job dependencies using the `needs` keyword. By setting up the dependencies, you ensure that a job will only run after the job it depends on is completed successfully.
 
@@ -360,7 +363,8 @@ jobs:
       run: ./deploy.sh
 ```
 
-### Explanation:
+### Explanation
+
 1. **Job Definitions:**
    - **`build` job:** This job checks out the code, sets up Node.js, installs dependencies, and builds the project.
    - **`test` job:** This job checks out the code, sets up Node.js, installs dependencies, and runs tests. It will only run after the `build` job completes successfully.
@@ -370,7 +374,8 @@ jobs:
    - The `needs: build` keyword in the `test` job specifies that the `test` job should run after the `build` job.
    - The `needs: test` keyword in the `deploy` job specifies that the `deploy` job should run after the `test` job.
 
-### Using `needs` for Sequential Execution:
+### Using `needs` for Sequential Execution
+
 - **Defining Dependencies:** Use the `needs` keyword to define which job(s) a job depends on. This ensures that jobs run in the specified order.
 - **Sequential Execution:** By chaining dependencies, you can create a sequence of jobs that run one after another.
 
@@ -427,17 +432,120 @@ jobs:
       run: ./deploy.sh
 ```
 
-### Explanation of Complex Example:
+### Explanation of Complex Example
+
 1. **`setup` job:** This job prepares the environment.
 2. **`build` and `lint` jobs:** These jobs both depend on the `setup` job and will run in parallel after `setup` completes.
 3. **`test` job:** This job depends on both `build` and `lint` jobs, ensuring that tests are run only after both build and linting are done. Hence, multiple jobs can be placed in a list for the `needs` element.
 4. **`deploy` job:** This job depends on the `test` job, ensuring that deployment happens only after tests pass.
 
-### Summary:
+### Summary
+
 - **Parallel by Default:** Jobs run in parallel unless dependencies are specified.
 - **Sequential Execution:** Use the `needs` keyword to specify dependencies and control the execution order.
 - **Complex Workflows:** Combine multiple dependencies to create complex workflows with parallel and sequential job execution.
 
 By defining dependencies using the `needs` keyword, you can control the order in which jobs run in your GitHub Actions workflow, ensuring they execute sequentially as required.
-  
+
+</details>
+
+# III. 🔍 Workflows & Events - Deep Dive 🌊
+
+There are many kinds of events which are repository-related and custom event-related.
+
+![available_events](Resources/available_events.png)
+
+### Event Filtering
+
+Consider this YAML file:
+
+```yaml
+name: Events Demo 1
+on:
+  push:
+    paths:
+      - 'Code/03 Events/01 Starting Project/**'
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Output event data
+        run: echo "${{ toJSON(github.event) }}"
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: npm ci
+      - name: Test code
+        run: npm run test
+      - name: Build code
+        run: npm run build
+      - name: Deploy project
+        run: echo "Deploying..."
+```
+
+Here we have the `push` & `workflow_dispatch` event triggers activated on the custom path `Code/03 Events/01 Starting Project/**` but not always we want to run the `Deploy Project` step, we would only want to do that during the push to the main branch. In cases like that we can add an event filter. We can add an `if` conditional to the `Deploy Project` step like so:
+
+- `github.ref == 'ref/heads/main'` : Checks if the reference (branch) being pushed to is the main branch
+- `github.event_name == 'push'`: Ensures that the event triggering the workflow is a push event.
+
+A workflow event in GitHub Actions can have multiple activity types associated with it. For example, the `pull_request` event can include activities such as `opened`, `assigned`, `closed`, `reopened`, etc. You can configure the workflow to be triggered or run only when a specific activity type occurs within the event, allowing you to precisely control when your workflow should execute based on the specific action that occurred.
+
+## 🤔💬 Q & A's
+
+<details><summary><h3>What are activity types and event filters in a GitHub Workflow?</h3></summary>
+
+The "activity types" and "event filters" are concepts used to control the workflow and how should it be triggered or run based on specific aactions or conditions within an event.
+
+### Activity Types
+
+They refer to a specific action or event that can occur with a broader event type. For example:
+
+- For the `pull_request` event, activity types include `opened`, `closed`, `synchronize`, `reopened` etc.
+- For the `issues` event, activity types include `opened`, `edited`, `closed`, `assigned`, `labelled` etc.
+
+Each activity type represents a specific action or change within the context of the event. You can configure your workflow to respond to specific activity types within an event by specifying them in the workflow YAML file.
+
+### Event Filters
+
+Event filters are conditions or criteria that you can use to control when the workflow should be triggered or run based on specific properties of the event. Common event filters include:
+
+- Branch name: Trigger the workflow only when the changes are pushed to a specific branch (e.g. `main`, `develop`).
+- Paths: Trigger the workflow only when the changes are made to files matching a specific path or pattern.
+- Pull request actions: Trigger the workflow only when certain actions are performed on a pull request. (e.g. `opened`, `closed`, `synchronize`).
+
+Event filters allow you to fine-tune when your workflow should execute based on the context of the event. You can use event filters to ensure that your workflow runs only when certain conditions are met, such as specific branches are affected or specific files are modified.
+
+### Example
+
+```yaml
+name: Example Workflow
+
+on:
+  push:
+    branches:
+      - main
+      - 'dev-*' # all branches which start with the word dev-
+    paths:
+      - 'src/**'
+    paths-ignore:
+      - '.github/workflows/*'
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build project
+        run: npm run build
+```
+
+In this workflow,
+
+- The workflow will run on push events only when changes are pushed to the `main` branch & `dev-*` like branches and affect files in the `src` directory.
+- The workflow will also run on `pull_request` events when pull requests are opened or synchronized.
+
 </details>
