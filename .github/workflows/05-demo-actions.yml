@@ -61,5 +61,11 @@ jobs: # Define jobs to run in the workflow
     runs-on: ubuntu-latest # Use the latest Ubuntu runner
     needs: build_stage # This job depends on the successful completion of the build_stage
     steps: # Steps to execute in this job
+      - name: Get build artifacts
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: dist-files # This specifies the name of the artifact to download, likely containing the distribution files
+      - name: Output contents # Name fo the output content steps
+        run: ls # This step lists the downloaded artifacts for verification purposes
       - name: Deploy # Step to deploy the project
         run: echo "Deploying..." # Placeholder for actual deployment command
