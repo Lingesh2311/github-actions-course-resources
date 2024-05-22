@@ -32,6 +32,8 @@ jobs: # Define jobs to run in the workflow
   build_stage: # Second job: build stage
     runs-on: ubuntu-latest # Use the latest Ubuntu runner
     needs: test_stage # This job depends on the successful completion of the test_stage
+    outputs:
+      script-file: ${{ steps.publish.outputs.script-file }} 
     steps: # Steps to execute in this job
       - name: Get code # Step to check out the code
         uses: actions/checkout@v4.1.5
@@ -49,6 +51,10 @@ jobs: # Define jobs to run in the workflow
         run: npm run build
         working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/' # Change to the specific directory
 
+      - name: Publish JS filename # Step to output the js file name as an output
+        id: publish # to access the step id from the steps context
+        run: find dist/assets/*.js -type f -execdir echo 'script-file={}' >> $GITHUB_OUTPUT ';' # sets the output script-file value
+
       - name: Upload artifacts # Step to upload build artifacts
         uses: actions/upload-artifact@v4.3.3
         with:
@@ -65,7 +71,11 @@ jobs: # Define jobs to run in the workflow
         uses: actions/download-artifact@v4.1.7
         with:
           name: dist-files # This specifies the name of the artifact to download, likely containing the distribution files
-      - name: Output contents # Name fo the output content steps
+      
+      - name: Output contents # Name of the output content steps
         run: ls # This step lists the downloaded artifacts for verification purposes
+      
+      - name: Output filename # Disply the filename which is stored as an output variable
+        run: echo "${{ needs.build.outputs }}"
       - name: Deploy # Step to deploy the project
         run: echo "Deploying..." # Placeholder for actual deployment command
