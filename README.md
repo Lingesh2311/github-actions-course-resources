@@ -640,3 +640,30 @@ Artifacts help to share the data between jobs in a workflow and store data once 
 
 GitHub provides two actions that you can use to upload/download build artifacts. (`upload-artifact` and `download-artifact`)
 
+### Job Outputs
+
+We can use the `jobs.<job_id>.outputs` to create a `map` of outputs for a job. Job outputs are available to all downstream jobs that depend on this job. Below is an example:
+
+```yaml
+jobs:
+   job1:
+      runs-on: ubuntu-latest
+      # Map a step output to a job output
+      outputs:
+         output1: ${{ steps.step1.outputs.test }}
+         output2: ${{ steps.step2.outputs.test }}
+      steps:
+         - id: step1
+           run: echo "test=hello" >> "$GITHUB_OUTPUT"
+         - id: step2
+           run: echo "test=hello" >> "$GITHUB_OUTPUT"
+   job2:
+      runs-on: ubuntu-latest
+      needs: job1
+      steps:
+         - env:
+              OUTPUT1: ${{ needs.job1.outputs.output1 }}
+              OUTPUT2: ${{ needs.job2.outputs.output2 }}
+```
+
+The simple values can be passed or when needs to be passed from one step to the next, we can utilize job outputs functionality. Example: Name of a file generated in the previous build step. 
