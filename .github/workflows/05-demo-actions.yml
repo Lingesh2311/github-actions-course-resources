@@ -49,6 +49,12 @@ jobs: # Define jobs to run in the workflow
         with:
           node-version: 18 # Specify Node.js version
 
+      - name: Cache dependencies # Step to cache the npm dependencies
+        uses: actions/cache@v4.0.2
+        with:
+          path: ~/.npm # directory that will need to be cached (will ideally reuse the cache from test_stage job)
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }} # builds a hash on all the available package-lock.json files
+
       - name: Install Dependencies # Step to install dependencies
         run: npm ci
         working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/' # Change to the specific directory
@@ -59,7 +65,9 @@ jobs: # Define jobs to run in the workflow
 
       - name: Publish JS filename # Step to output the js file name as an output
         id: publish # to access the step id from the steps context
-        run: find dist/assets/*.js -type f -execdir echo 'script-file={}' >> $GITHUB_OUTPUT ';' # sets the output script-file value
+        run: | # sets the output script-file value
+          find 'Code/04 Artifacts & Outputs/01 Starting Project/dist/assets/*.js' -type f -execdir echo 'script-file={}' >> $GITHUB_OUTPUT ';' 
+          working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/'
 
       - name: Upload artifacts # Step to upload build artifacts
         uses: actions/upload-artifact@v4.3.3
