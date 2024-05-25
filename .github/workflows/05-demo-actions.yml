@@ -21,6 +21,12 @@ jobs: # Define jobs to run in the workflow
         with:
           node-version: 18 # Specify Node.js version
 
+      - name: Cache dependencies # Step to cache the npm dependencies
+        uses: actions/cache@v4.0.2
+        with:
+          path: ~/.npm # directory that will need to be cached
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }} # builds a hash on all the available package-lock.json files
+
       - name: Install Dependencies # Step to install dependencies
         run: npm ci
         working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/' # Change to the specific directory
