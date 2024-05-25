@@ -667,3 +667,15 @@ jobs:
 ```
 
 The simple values can be passed or when needs to be passed from one step to the next, we can utilize job outputs functionality. Example: Name of a file generated in the previous build step. 
+
+### Dependency Caching
+
+This is to create and use caches for dependencies and other commonly reused files. Workflow runs often reuse the same outputs or downloaded dependencies from one run to another. For example, package and dependency management tools such as Maven, Gradle, npm and Yarn keep a local cache of downloaded dependencies.
+
+To cache you can use the GitHub's `cache` action. The action creates and restores a cache identified by an unique key. Alternatively, if you are caching the package managers listed (`setup-node`, `setup-python`, `setup-java`, `setup-ruby`, `setup-go`, `setup-dotnet`) requires a miniml configuration and will cerate and restore the dependency caches for you.
+
+- **Cache purpose**: The cache action aims to store and reuse downloaded dependencies across workflow runs. It focuses on the content of the path you specify, not where those dependencies are used within your project.
+
+- **Global npm cache**: The path `~/.npm` refers to the user's home directory on the runner and specifically the `.npm` folder. This folder is the global cache location for npm on the runner machine. Regardless of the working directory in later steps, npm will automatically access and install dependencies from this cached location if available.
+
+- **Hashing ensures accuracy**: The cache key you use, `deps-node-modules-${{ hashFiles('**/package-lock.json') }}`, considers the content of the `package-lock.json` file. If this file changes, indicating a change in dependencies, the cache key changes as well, forcing a fresh download.
