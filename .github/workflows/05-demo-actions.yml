@@ -59,9 +59,17 @@ jobs: # Define jobs to run in the workflow
         run: npm ci
         working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/' # Change to the specific directory
 
+      - name: Print working directory before build
+        run: pwd
+        working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/'
+      
       - name: Build project # Step to build the project
         run: npm run build
         working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/' # Change to the specific directory
+
+      - name: Print working directory after build
+        run: pwd
+        working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/'
 
       - name: Debug build output # Debug step
         run: |
