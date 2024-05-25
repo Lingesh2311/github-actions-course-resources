@@ -74,7 +74,7 @@ jobs: # Define jobs to run in the workflow
       - name: Debug build output # Debug step
         run: |
           echo "Listing build output:"
-          ls -R 'Code/04 Artifacts & Outputs/01 Starting Project/dist'
+          ls -R '/home/runner/work/github-actions-course-resources/github-actions-course-resources/Code/04 Artifacts & Outputs/01 Starting Project/'
         working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/'
 
       - name: Publish JS filename # Step to output the js file name as an output
