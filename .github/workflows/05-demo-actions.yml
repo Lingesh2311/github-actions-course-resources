@@ -81,7 +81,7 @@ jobs: # Define jobs to run in the workflow
         id: publish # to access the step id from the steps context
         run: | # sets the output script-file value
           find '/home/runner/work/github-actions-course-resources/github-actions-course-resources/Code/04 Artifacts & Outputs/01 Starting Project/dist/assets' -name '*.js' -type f -exec echo 'script-file={}' >> $GITHUB_OUTPUT ';'
-          working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/'
+        working-directory: 'Code/04 Artifacts & Outputs/01 Starting Project/'
 
       - name: Upload artifacts # Step to upload build artifacts
         uses: actions/upload-artifact@v4.3.3
