@@ -666,7 +666,9 @@ jobs:
               OUTPUT2: ${{ needs.job2.outputs.output2 }}
 ```
 
-The simple values can be passed or when needs to be passed from one step to the next, we can utilize job outputs functionality. Example: Name of a file generated in the previous build step. 
+The simple values can be passed or when needs to be passed from one step to the next, we can utilize job outputs functionality. Example: Name of a file generated in the previous build step.
+
+The outputs are shared via the `echo '{output-name}={output-value}' >> $GITHUB_OUTPUT` call in the workflow.
 
 ### Dependency Caching
 
@@ -679,3 +681,60 @@ To cache you can use the GitHub's `cache` action. The action creates and restore
 - **Global npm cache**: The path `~/.npm` refers to the user's home directory on the runner and specifically the `.npm` folder. This folder is the global cache location for npm on the runner machine. Regardless of the working directory in later steps, npm will automatically access and install dependencies from this cached location if available.
 
 - **Hashing ensures accuracy**: The cache key you use, `deps-node-modules-${{ hashFiles('**/package-lock.json') }}`, considers the content of the `package-lock.json` file. If this file changes, indicating a change in dependencies, the cache key changes as well, forcing a fresh download.
+
+# V. 🔒 Environment Variables & Secrets
+
+This is to avoid the hardcoding part of the confidential and not-to-be shared values.
+
+We can set the environment variables at the workflow/job/step level. To seet a custom environment variable for a single workflow, you can define it using the `env` key in the workflow file. The scope of a custom variable set by this method is limited to the element in which it is defined. You can define variables that are scoped for:
+
+- The entire workflow, by using the `env` at the top level of the workflow file.
+- The contents of a job within a workflow, by using the `job.<job_id>.env`
+- A specific steps within a job, using the `job.<job_id>.steps[*].env`
+
+Consider this example yaml:
+```yaml
+name: Greeting on variable day
+
+on:
+   workflow_dispatch
+
+env:
+   DAY_OF_WEEK: Monday
+
+jobs:
+   greeting_job:
+      runs-on: ubuntu-latest
+      env:
+         Greeting: Hello
+      steps:
+         - name: "Say Hello Mona it's Monday"
+           run: echo "$Greeting $First_Name. Today is $DAY_OF_WEEK"
+           env:
+             First_Name: Mona 
+```
+
+### Default Environment Variables
+
+The defaualt environment variables that GitHub sets are available to every step in the workflow. They are not accessible through the `env` context. However, most of the default variables have a corresponding, and similiarly named, context property.You can't overwrite the value of the default environment variables named `GITHUB_*` and `RUNNER_*`.
+
+### Secrets
+
+There are some values which must not be directly placed as environment variables in the workflow file, and these values are known as secrets. We can use the `secrets` context object to access the repository secrets that are set in the repository under the `Settings` tab. For secrets that are stored at the organization level, you can use access policies to control which repositories can use the organization secrets. Org-level secrets let you share secrets between multiple repositories, which reduces the need for creating duplicate secrets. Updating an organization secret in one location also ensures that the change takes effect in all repositories workflows that use that secret.
+
+For secrets stored at the environment level, you can enable the required reviewers to control access to the secrets. A workflow job cannot access environment secrets until approval is granted by required approvers.
+
+When we try to print the secrets, GitHub takes care of hiding it and not will not reveal the actual value to the user who is trying to fetch it.
+
+### GitHub Repository Environments
+
+The idea is that we configure the environments on a repository and the workflow environment can store/attach the secrets onto such specific target environments. Different configurations can be provided to the job (e.g. different passwords) at the environment level.
+
+### Environment Protection Rules & Deployment Branches
+
+We can have environment level protection rules which can be used to configure the manual approvals and timeouts. The possible options are:
+
+- **Required approvers**: Specify the people or teams that may approve the workflow runs when they access the environment.
+- **Wait timer**: Set an amount of time to wait before allowing deployments to proceed.
+
+We can also set the **deployment branch patterns** that must be adhered to when the environment specific workflow is to be triggered.
