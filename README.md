@@ -739,7 +739,7 @@ We can have environment level protection rules which can be used to configure th
 
 We can also set the **deployment branch patterns** that must be adhered to when the environment specific workflow is to be triggered.
 
-VI. Controlling Workflow and Job Execution ⚙️
+# VI. Controlling Workflow and Job Execution ⚙️
 
 The default behaviour of the workflow steps is sequential/parallel and **dependent** which means we might need to override the default execution flow of the job steps in a workflow. The dependent jobs will not be executed (will be cancelled) when a step in a parent job/ parent job itself fails.
 
