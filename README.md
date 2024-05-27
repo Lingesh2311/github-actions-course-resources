@@ -738,3 +738,149 @@ We can have environment level protection rules which can be used to configure th
 - **Wait timer**: Set an amount of time to wait before allowing deployments to proceed.
 
 We can also set the **deployment branch patterns** that must be adhered to when the environment specific workflow is to be triggered.
+
+VI. Controlling Workflow and Job Execution ⚙️
+
+The default behaviour of the workflow steps is sequential/parallel and **dependent** which means we might need to override the default execution flow of the job steps in a workflow. The dependent jobs will not be executed (will be cancelled) when a step in a parent job/ parent job itself fails.
+
+### Conditional Jobs and Steps
+
+`If` field can be added to both the jobs and steps. For steps, we have `continue-on-error` field which can help in the execution flow.
+
+### Special Conditional Functions
+
+- `failure()` - This function evaluates to `true`, regardless of the outcome (success, failure, or cancellation) of the referenced job. It is useful when you wan to perform the step irrespective of the previous job's status.
+- `success()` - This function evaluates to `true` only if the job it references completed successfully. You can use it to trigger dependent jobs or steps that rely on the successful execution of another job.
+- `always()` - This function **always** evaluates to `true`, regardless of the outcome (success, failure, or cancellation) of the referenced job. It is useful when you want to perform a step irrespective of the previous job's status, like cleaning up resources.
+- `cancelled()` - This function evaulates to `true` only if the job it references was cancelled. This can be helpful for handling workflows that were manually stopped before execution.
+
+Consider this yaml:
+
+```yaml
+- name: Test code
+  id: run-test # this id can be used in subsequent steps to control the execution flow
+  run: npm run test
+- name: Upload test report
+  if: failure() && steps.run-test.outcome == 'failure' # comparing the steps context outcome value with 'failure' state to run this step on failure
+  uses: actions/upload-artifact@v4.3.3
+  with:
+    name: test-report
+    path: test.json
+```
+
+Here we use the `steps.run-test.outcome` context object's value we can control the flow of the run. The special function `failure()` here will take care of running the step `Upload test report` even if there are failing steps before the current step.
+
+The `Upload Test Report` step uses the pre-built action `actions/upload-artifact@v4.3.3`. Actions are reusalbe building blocks for common tasks in workflow. The step only runs under two conditions (represented by the `if` keyword):
+
+- The previous step (`run-test`) must have failed (`failure()`)
+- The outcome fo the previous step (`steps.run-test.outcome`) needs to be explicitly 'failure'. This double-checks the previous step's status.
+- If both the conditions are met, this step uploads the file `test.json` (assumed to be the test report) to an artifact storage in GitHub. This allows you to access the report later.
+
+### `If` field at the Job level
+
+We can add the `if` field at the job level too. Consider the following yaml file:
+
+```yaml
+name: Website Deployment
+on:
+   push:
+      branches:
+         - main
+jobs:
+   lint:
+   ...
+   test:
+   ...
+   build:
+   ...
+   deploy:
+   ...
+   report:
+      needs: [lint, deploy]
+      if: failure()
+      runs-on: ubuntu-latest
+      steps:
+         - name: Output information
+           run: |
+            echo "Something went wrong"
+            echo "${{ toJSON(github) }}"
+```
+
+Here, the `if` field will be satisfied when any of the job in the workflow fails. And, also it needs all the jobs starting from `lint` to `deploy` to finish before performing the check on the `failure()` status. In essence, the `report` job acts as a post-mortem step in this workflow. It gathers the information (potentially GitHub context) only when there is a deployment failure after successful linting and deployment, providing a central location to identify potential cause of this issue.
+
+Another example of the `if` field can be done in the combination of the `caching` and `install dependencies` steps. Consider the following workflow:
+
+```yaml
+name: Website Deployment
+on:
+   push:
+      branches:
+         - main
+jobs:
+   lint:
+      runs-on: ubuntu-latest
+      steps:
+         - name: Get code
+           uses: actions/checkout@v4.0.3
+         - name: Cache dependencies
+           id: cache
+           uses: actions/cache@v3.2.0
+           with:
+              path: node_modules
+              key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+         - name: Install dependencies
+           if: steps.cache.outputs.cache-hit != 'true' # this will be true when the previous steps' caching is successful
+           run: npm ci
+         - name: Lint code
+           run: npm run lint
+```
+
+The `if` conditional statement in this workflow config controls whether the `npm ci` command (to install dependencies) runs or is skipped.
+
+- `if: steps.cache.outputs.cache-hit != 'true'` : This condition checks the output of the previous caching step named `cache` using the `id` attribute. The specific output it checks is the `cache-hit`.
+- If the cache is successfully retreived (`cache-hit` output is `true`), then the `if` condition evaluates to `false`. This means the next step `npm ci` to install the dependencies is skipped. Reusing the cache saves time by avoiding redundant installations.
+- However, if the cache retrival fails (cache miss), the `cache-hit` output will be `false`. In this case, the `if` condition become `true`, and the subsequent step (`npm ci`) to install dependencies runs as intended.
+
+The `if` statement implements the caching logic to optimize the workflow execution. It only installs dependencies if the cache miss or there was no usaable cache version available.
+
+### Understanding & Using Matrix Strategies
+
+
+
+## 🤔💬 Q & A's
+
+<details><summary><h3>Can we ignore the errors and failures in GitHub actions?</h3></summary>
+
+When we add the `continue-on-error: true` attribute in the job/step then we are mentioning that job/step must continue no matter if the job under current execution passes/fails. This breaks the default behaviour of stopping the job if the current step fails.
+
+Consider this YAML:
+
+```yaml
+name: "Continue on Error"
+on:
+   push: # This acation is called when the code is pushed to GitHub
+   workflow_dispatch: # this can be manually triggered
+jobs:
+   retry-job:
+      runs-on: "ubuntu-latest"
+      name: My job
+      steps:
+         - name: Checkout repository
+           uses: actions/checkout@v4
+
+         - name: Some action that can fail
+           # You need to specify an id to be able to tell what the status of this action was
+           id: myStepId1
+           continue-on-error: true # this needs to be true to proceed to the next step of failure
+           uses: actions/someaction
+
+         - name: Some action that can fail
+           id: myStepId2
+           # Only run this step if step 1 fails. It knows that step one failed based on the `id` specified in the first step
+           uses: steps.myStepId1.outcome == 'failure'
+           # this needs to be true to proceed to the next step of failure
+           continue-on-error: true
+           uses: actions/someaction
+```
+
+</details>
