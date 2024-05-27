@@ -1017,7 +1017,7 @@ jobs:
 
 </details>
 
-<details><summary><h3>Can we somehow allow the execution of the jobs in a GitHub workflow matrix even if some of the combination fails?</h3></summary>
+<details><summary><h3>Is it possible to allow the jobs in a workflow matrix even if one of the combination fails?</h3></summary>
 
 Yes, this can be done by adding the `continue-on-error: true` at the job level which contains the matrix strategy.
 
