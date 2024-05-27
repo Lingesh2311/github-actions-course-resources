@@ -845,7 +845,139 @@ The `if` statement implements the caching logic to optimize the workflow executi
 
 ### Understanding & Using Matrix Strategies
 
+A matrix strategy lets you use the variables in a single job definition to automatically create multiple job runs that are based on the combination of the variables. For example, you can use a matrix strategy to test your code in multiple versions of a language or on multiple OS's.
 
+#### Using a matrix strategy
+
+Use the `jobs.<job_id>.strategy.matrix` to define a matrix of different job configurations Within the matrix, define one or more variables followed by an array of values. For example, the following matrix has a variable called `version` with the value `[10, 12, 14]` and variable called `os` with the value `[ubuntu-latest, windows-latest]`:
+
+```yaml
+jobs:
+  example_matrix:
+    strategy:
+      matrix:
+        version: [10, 12, 14]
+        os: [ubuntu-latest, windows-latest]
+```
+
+A job will run for each of the possible combination of the variables. In this example, the workflow will run six jobs, one for each combination of the `os` and `version` variables.
+
+By default, GitHub will maximize the number of jobs run in parallel depending on runner availability. The order of the variables in the matrix determines the order in which the jobs are created. The first variable you define will be the first job that is created in the workflow run. In the above YAML, the jobs are created in the following order:
+
+- `{version: 10, os: ubuntu-latest}`
+- `{version: 10, os: windows-latest}`
+- `{version: 12, os: ubuntu-latest}`
+- `{version: 12, os: windows-latest}`
+- `{version: 14, os: ubuntu-latest}`
+- `{version: 14, os: windows-latest}`
+
+A matrix will generate a maximum of 256 jobs per workflow run. This limit applies to both GitHub-hosted and self-hosted runners.
+
+#### Example: Using a single dimension matrix
+
+```yaml
+jobs:
+   single_d_matrix:
+      strategy:
+         matrix:
+            version: [10, 12, 14]
+   steps:
+      - uses: actions/setup-node@v4
+        with:
+           node-version: ${{ matrix.version }}
+```
+
+Here we define the matrix variable `version` under the `strategy.matrix` nesting which can take up the values `[10, 12, 14]`. The workflow will run three jobs, one for each value of the variable. Each job will access the `version` value through the `matrix.version` context and pass that value as `node-version` to the `actions/setup-node@v4` action.
+
+#### Example: Using a multi-dimension matrix
+
+```yaml
+jobs:
+   multi_d_matrix:
+      strategy:
+         matrix:
+            os: [ubuntu-22.04, ubuntu-20.04]
+            versionn: [10, 12, 14]
+      runs-on: ${{ matrix.os }}
+      steps:
+         - uses: actions/setup-node@v4
+           with:
+              node-version: ${{ matrix.version }}
+```
+
+In this workflow there are two variables `os` and `version`, there would be siz jobs, one for each combination of the `os` and `version` variable. Each job would set the `runs-on` value to the current `os` value and will pass the current `version` value to the `actions/setup-node` action.
+
+#### Expanding or adding particular matrix configurations using `include` and `exclude`
+
+Using `jobs.<job_id>.strategy.matrix.include` to expand the existing configuraions or to add new configurations. The value `include` is a list of objects. For each object in the `include` list, the key:value pairs overwrite any of the original matrix values.
+
+For example, this matrix:
+```yaml
+strategy:
+   matrix:
+      fruit: [apple, pear]
+      animal: [cat, dog]
+      include:
+         -  color: green
+         -  color: pink
+            animal: cat
+         -  fruit: apple
+            shape: circle
+         -  fruit: banana
+         -  fruit: banana
+            animal: cat
+```
+
+This will result in six jobs with the following matrix combinations:
+
+* `{fruit: apple, animal: cat, color: pink, shape: circle}`
+* `{fruit: apple, animal: dog, color: green, shape: circle}`
+* `{fruit: pear, animal: cat, color: pink}`
+* `{fruit: pear, animal: dog, color: green}`
+* `{fruit: banana}`
+* `{fruit: banana, animal: cat}`
+
+following this logic:
+
+* `{color: green}` is added to all of the originl matrix cominations because it can be added without overwriting any part of the original combinations.
+* `{color: pink, animal: cat}` adds `color:pink` only to the original combinations that include `animal:cat`. This overwrites the `color: green` that was added by the previous `include` entry.
+* `{fruit: apple, shape: circle}` adds `shape:circle` only to the original matrix combinations that include `fruit:apple`.
+* `{fruit: banana}` cannot be added to any original matrix combination without overwriting a value, so it is added as an additional matrix combination. 
+
+The `matrix` strategy in GitHub actions allows you to create multiple jobs with different configurations. The `include` attribute is used to add additional configurations to the matrix.
+
+1. The `matrix` attribute defines the base configurations. In you example, there are two base configurations: `fruit` and `animal`. This will create a job for each configuration of `fruit` and `animal`, resulting in four jobs:
+   
+   * `{fruit: apple, animal: cat}`
+   * `{fruit: apple, animal: dog}`
+   * `{fruit: pear, animal: cat}`
+   * `{fruit: pear, animal: dog}`
+
+3. The `include` attribute is used to add additional configurations to the matrix. Each item in the `include` list is a dictionary that defines a new configuration.
+
+   * If the dictionary contains keys that match the base configurations (like `fruit` or `animal`), it will add the new configuration to the corresponding base job. For example `{fruit: apple, shape: circle}` will add the `shape:circle` to the jobs where `fruit: apple`
+   * If the dictionary does not contain any keys that match the base configurations, it will create a new job with the given configuration. For example `{color: green}` will create a new job `{color: green}`
+
+4. If the `include` attribute contains duplicate configurations, they will be ignored. For example, `{fruit: banana}` appears twice in our `include` list, but it will create one job.
+
+#### Excluding Matrix Configurations
+
+To remove a specific configuration defined in the matrix, use `jobs.<job_id>.strategy.matrix.exclude`. An excluded configuration only has to be a partial match for it to be excluded. For example, the following workflow will run nine jobs: one job of the 12 configurations, minus the one excluded job that matches `{os: macos-latest, version: 12, environment: production}`, and the two excluded jobs that match `{os: windows-latest, version: 16}`.
+
+```yaml
+strategy:
+   matrix:
+      os: [macos-latest, windows-latest]
+      version: [12, 14, 16]
+      environment: [staging, production]
+      exclude:
+         - os: macos-latest
+           version: 12
+           environment: production
+         - os: windows-latest
+           version: 16
+runs-on: ${{ matrix.os }}
+```
 
 ## 🤔💬 Q & A's
 
@@ -883,4 +1015,122 @@ jobs:
            uses: actions/someaction
 ```
 
+</details>
+
+<details><summary><h3>Can we somehow allow the execution of the jobs in a GitHub workflow matrix even if some of the combination fails?</h3></summary>
+
+Yes, this can be done by adding the `continue-on-error: true` at the job level which contains the matrix strategy.
+
+A workflow that uses another workflow is referred to as a **"caller"** workflow. The reusable workflow is a **"called"** workflow. One caller workflow can use multiple called workflows. Each called workflow is referenced in a single line. The result is that the caller workflow file may contain just a few lines of YAML, but may perform a large tasks when it's run.
+
+</details>
+
+</details>
+
+<details><summary><h3>Can we reuse the workflows in another workflow?</h3></summary>
+
+Reusing workflows avoids duplication. This makes workflow easier to maintain and allows you to create new workflows more quickly by building on the work of others, just as you do with actions. Workflow reuse also promotes best practice.
+
+Consider the following **called** workflow. This workflow will have an input parameter that it receives from the caller workflow. We will name this workflow `called-workflow.yml`:
+
+```yaml
+name: Called Workflow
+
+on:
+  workflow_call:
+    inputs:
+      myInput:
+        # this means that the input needs to be present when the workflow is called
+        required: true
+        # data type of the input parameter 
+        type: string
+    secrets:
+      mySecret:
+         required: true
+
+jobs:
+  calledJob:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print input
+        run: echo "The input is ${{ inputs.myInput }}"
+```
+
+In this workflow, we define an input parameter `myInput` that is required. In the job `calledJob`, we print the value of this input.
+
+Now, we can create the **caller** workflow. This workflow will call the `called-workflow.yml` and pass a value to the `myInput` parameter. We will name this workflow `caller-workflow.yml`:
+
+```yaml
+name: Caller Workflow
+on: [push]
+
+jobs:
+   callerWorkflow:
+      runs-on: ubuntu-latest
+      steps:
+         - name: Call the workflow
+           uses: ./.github/workflows/called-workflow.yml@main
+           with:
+              myInput: "Hello, World!"
+           secrets:
+              mySecret: ${{ secrets.some-secret }}
+```
+
+In this workflow, we use the `uses` keyword to call the `called-workflow.yml` workflow. We pass the value to the `myInput` parameter using the `with` keyword.
+
+</details>
+
+<details><summary><h3>Can we reuse the outputs from the called workflow in the caller workflow?</h3></summary>
+
+We can reuse the outputs from the called workflow in
+the caller workflow. This is achieved by defining the outputs in the called workflow and then accessing those outputs in the caller workflow.
+
+Consider the `called-workflow.yml`:
+
+```yaml
+name: Called Workflow
+
+on:
+   workflow_call:
+      inputs:
+         myInput:
+            required: true
+            type: string
+      outputs:
+         myOutput:
+            description: "Output from the called workflow"
+            value: ${{ jobs.calledJob.outputs.myOutput }}
+
+jobs:
+   calledJob:
+   runs-on: ubuntu-latest
+   steps:
+      - id: step1
+        run: echo "The input is ${{ inputs.myInput }}"
+        shell: bash
+      - id: step2
+        run: echo "::set-output name=myOutput::Hello from the called workflow"
+        shell: bash
+```
+
+In this workflow, we define an output parameter `myOutput` that is set in the `step2` of the `calledJob`. The `::set-output name=myOutput::Hello from the called workflow` line sets the output of the step, which is then used as the value of the workflow output.
+
+Then, in the `caller-workflow.yml`:
+
+```yaml
+name: Caller Workflow
+
+on: [push]
+
+jobs:
+   callerJob:
+      runs-on: ubuntu-latest
+      steps:
+         - id: call-workflow
+           uses: ./.github/workflows/called-workflow.yml@main
+           with:
+              myInput: "Hello, World!"
+          - name: Use output
+            run: echo "The output from the called workflow is ${{ steps.call-workflow.outputs.myOutput }}"
+```
 </details>
