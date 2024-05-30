@@ -1134,3 +1134,171 @@ jobs:
             run: echo "The output from the called workflow is ${{ steps.call-workflow.outputs.myOutput }}"
 ```
 </details>
+
+
+# VII. Jobs & Docker Containers 🐳
+
+Use the `jobs.<job_id>.continer` to create a container to run any steps in a job that don't already specify a container. If you have steps that use both script and container actions, the container actions willr un as sibling containers on the same network with the same volume mounts.
+
+If you do not set a `container` all steps will run directly on the host specified by the `runs-on` unless a step refers to an action configured to run in a container.
+
+For example, consider the scenario where we want to setup a certain testing bed for running and testing an application with certain specific needs. Here in a npm application, we can have a need of using the image `mcr.microsoft.com/playwright:v1.25.0-focal` which installs browsers that would be needed for running the `npm test` in various browsers. If we use the plain old `ubuntu-latest` runner, then we are pushed to installing the software (web browsers in our case) which might be needed in separate steps, and that is another layer of code maintenance which can otherwise be avoided by utilizing the docker image.
+
+To add the image to the job and steps within it, is to add the key `container:` to the job definition in the workflow definition file. As the value of the container, we can use the `image:` key or official image names like `node:` in the next level.
+
+Consider the following YAML:
+
+```yaml
+name: CI
+on:
+   push:
+      branches: [ main ]
+
+jobs:
+   container-test-job:
+      runs-on: ubuntu-latest
+      container:
+         image: node:18 # this is the name of the image which will be installed in the runner before any step is going to start
+         env:
+            NODE_ENV: development # environment variables can also be defined which are at the container level
+         ports:
+            - 80
+         volumes:
+            - my_docker_volume:/volume_mount
+         options: --cpus 1
+      steps:
+         - name: Check for dockerenv file
+           run: (ls ./dockerenv && echo Found dockerenv) || (echo No dockerenv)
+```
+
+When you only specify a container image, you can omit the `image` keyword:
+
+```yaml
+jobs:
+   container-test-job:
+      runs-on: ubuntu-latest
+      container: node:18
+```
+
+Eventhough now things are running in a container, GH actions takes care that the typical `actions/` commands will run within the container without any issues.
+
+### Connection between the Jobs and Service Containers
+
+We can use the label of the service to establish the communication between the step(s) in a job and a service container(s).
+
+## 🤔💬 Q & A's
+
+<details><summary><h3>What are Service Containers and its uses in the Jobs?</h3></summary>
+
+Consider a scenario where we want to run some tests. When we do so, we should not be running them directly on a production database, rather we would need to run them on some dummy database which is created for the sole purpose of testing and then later destroyed. This is where **service containers** come into play.
+
+**Service containers** are Docker containers that provide a simple and portablbe way for you to host services that might need to test or operate your application in a workflow. For example, your workflow might need to run integration tests that require access to a database and memory cache.
+
+You can configure service containers for each job in a workflow. GitHub creates a **fresh Docker container** for each service configured in a workflow, and destroys the service container when the job completes. Steps in a job can communicate with all service containers that are part of the same job. However, you can create and use service containers inside a composite action too.
+
+We can add service containers using the `services:` key under the job that wants to use different service containers within it. Within the `services:` key we can add many other services with different identifier labels. The services must always run inside containers so we **must** add the **`image:` label** inside each of the service.
+
+
+Consider this example:
+
+```yaml
+name: CI Pipeline
+
+on:
+   push:
+      branches:
+         - main
+   pull_request:
+      branches:
+         - main
+jobs:
+   test:
+      runs-on: ubuntu-latest
+
+      services:
+         # Define a MySQL service container
+         mysql:
+            image: mysql:5.7
+            env:
+               MYSQL_ROOT_PASSWORD: root_password
+               MYSQL_DATABASE: test_db
+            ports:
+               - 3306:3306
+            options: >
+               --health-cmd="mysqladmin ping --silent"
+               --health-interval=10s
+               --health-timeout=5s
+               --health-retries=3
+
+         redis:
+            image: redis:latest
+            ports:
+               - 6379:6379
+
+      env:
+         DATABASE_URL: health-cmd="mysqladmin ping --silent"
+         REDIS_URL: health-cmd="mysqladmin ping --silent"
+
+      steps:
+         -  name: Checkout code
+            uses: actions/checkout@v4
+
+         -  name: Set up Node.js
+            uses: actions/setup-node@v4
+            with:
+               node-version: '14'
+
+         -  name: Install dependencies
+            run: npm install
+
+         -  name: Wait for MySQL to be ready
+            run: |
+               while ! mysqladmin ping -h"127.0.0.1" --silent; do
+                  echo 'Waiting for MySQL...'
+                  sleep 3
+               done
+
+         -   name: Run tests
+             run: npm test
+             env:
+               DATABASE_URL: ${{ env.DATABASE_URL }}
+               REDIS_URL: ${{ env.REDIS_URL }}
+```
+
+Here there are two service containers:
+
+* MySQL Service:
+
+   - The MySQL container uses the `mysql:5.7` image.
+   - Environment variables (`MYSQL_ROOT_PASSWORD` and `MYSQL_DATABASE`) are set to configure the MySQL instance.
+   - Ports are mapped (`3306:3306`).
+   - Health check options ensure the MySQL service is ready before running the job.
+
+* Redis Service:
+
+   - The Redis container uses the `redis:latest` image.
+   - Ports are mapped (`6379:6379`).
+
+There are environment variables at the job level:
+
+* `DATABASE_URL` and `REDIS_URL` are set to facilitate the connections to MySQL and Redis services.
+
+In this workflow, service containers (MySQL and Redis) are used to provide the necessary services that the application relies on during testing. Here's how it works:
+
+1. Service Container setup:
+
+   - When the job starts, GH actions set up the specified service containers (MySQL and Redis).
+   - Each service container is started with the defined environment variables, port mappings and health checks.
+   
+3. Interacting with Services:
+
+   - The main job can interact with these services using the defined env variables.
+   - For example, the `DATABASE_URL` env variable is used to connect to the MySQL service and `REDIS_URL` is used to connect to the Redis service.
+
+5. Testing with Services:
+
+   - The job waits until the services are ready (using health checks or custom scripts).
+   - Once ready, the main job steps (like running tests) can execute commands that interact with the service containers, ensuring the tests have access to the necessary databases and caching systems.
+ 
+</details>
+
