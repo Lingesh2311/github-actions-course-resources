@@ -1302,3 +1302,7 @@ In this workflow, service containers (MySQL and Redis) are used to provide the n
  
 </details>
 
+# 🚀 VIII. Building & Using Custom Actions 🛠️
+
+Custom actions can be used to simplify various steps in the workflow. Instead of writing multiple complex steps with managed actions, we can build a custom action instead. There are three kinds of custom actions that we can use in GH workflows : `JS actions`, `Docker actions`, `Composite actions`.
+
